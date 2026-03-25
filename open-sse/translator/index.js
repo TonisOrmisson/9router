@@ -2,6 +2,7 @@ import { FORMATS } from "./formats.js";
 import { ensureToolCallIds, fixMissingToolResponses } from "./helpers/toolCallHelper.js";
 import { prepareClaudeRequest } from "./helpers/claudeHelper.js";
 import { filterToOpenAIFormat } from "./helpers/openaiHelper.js";
+import { consume9RouterCompactionItems } from "./helpers/responsesApiHelper.js";
 import { normalizeThinkingConfig } from "../services/provider.js";
 
 // Registry for translators
@@ -62,6 +63,13 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
   
   // Fix missing tool responses (insert empty tool_result if needed)
   fixMissingToolResponses(result);
+
+  // Same-format (openai-responses) route: expand 9router compaction items into instructions so
+  // upstream providers that don't understand 9router's `encrypted_content` won't choke on them.
+  // Only consumes 9router's own prefix; OpenAI's native encrypted compaction stays intact.
+  if (sourceFormat === FORMATS.OPENAI_RESPONSES && targetFormat === FORMATS.OPENAI_RESPONSES) {
+    result = consume9RouterCompactionItems(result);
+  }
 
   // If same format, skip translation steps
   if (sourceFormat !== targetFormat) {

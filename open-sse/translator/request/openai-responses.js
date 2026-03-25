@@ -6,7 +6,7 @@
  */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
-import { normalizeResponsesInput } from "../helpers/responsesApiHelper.js";
+import { consume9RouterCompactionItems, normalizeResponsesInput } from "../helpers/responsesApiHelper.js";
 
 /**
  * Convert OpenAI Responses API request to OpenAI Chat Completions format
@@ -14,19 +14,17 @@ import { normalizeResponsesInput } from "../helpers/responsesApiHelper.js";
 export function openaiResponsesToOpenAIRequest(model, body, stream, credentials) {
   if (!body.input) return body;
 
-  const result = { ...body };
+  const compactedBody = consume9RouterCompactionItems(body);
+  const result = { ...compactedBody };
   result.messages = [];
 
-  // Convert instructions to system message
-  if (body.instructions) {
-    result.messages.push({ role: "system", content: body.instructions });
-  }
+  const instructions = typeof compactedBody.instructions === "string" ? compactedBody.instructions : "";
 
   // Group items by conversation turn
   let currentAssistantMsg = null;
   let pendingToolResults = [];
 
-  const inputItems = normalizeResponsesInput(body.input);
+  const inputItems = normalizeResponsesInput(compactedBody.input);
   if (!inputItems) return body;
 
   for (const item of inputItems) {
@@ -114,6 +112,11 @@ export function openaiResponsesToOpenAIRequest(model, body, stream, credentials)
     for (const tr of pendingToolResults) {
       result.messages.push(tr);
     }
+  }
+
+  // Convert instructions to system message (prepend)
+  if (instructions && instructions.trim() !== "") {
+    result.messages.unshift({ role: "system", content: instructions });
   }
 
   // Convert tools format.

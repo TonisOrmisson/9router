@@ -13,6 +13,63 @@ export function normalizeResponsesInput(input) {
   return null;
 }
 
+const NINE_ROUTER_COMPACTION_PREFIX = "9r1:";
+
+function base64UrlToBase64(b64url) {
+  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
+  return b64 + pad;
+}
+
+export function decode9RouterCompactionEncryptedContent(encryptedContent) {
+  if (typeof encryptedContent !== "string") return null;
+  if (!encryptedContent.startsWith(NINE_ROUTER_COMPACTION_PREFIX)) return null;
+  const payload = encryptedContent.slice(NINE_ROUTER_COMPACTION_PREFIX.length);
+  if (!payload) return null;
+
+  try {
+    const json = Buffer.from(base64UrlToBase64(payload), "base64").toString("utf8");
+    const parsed = JSON.parse(json);
+    if (!parsed || parsed.v !== 1) return null;
+    if (parsed.kind !== "9router.compaction") return null;
+    if (typeof parsed.summary !== "string" || parsed.summary.trim() === "") return null;
+    return parsed.summary.trim();
+  } catch {
+    return null;
+  }
+}
+
+export function consume9RouterCompactionItems(body) {
+  if (!body || !Array.isArray(body.input)) return body;
+
+  const summaries = [];
+  const nextInput = [];
+
+  for (const item of body.input) {
+    const itemType = item?.type || (item?.role ? "message" : null);
+    if (itemType === "compaction") {
+      const summary = decode9RouterCompactionEncryptedContent(item?.encrypted_content);
+      if (summary) {
+        summaries.push(summary);
+        continue;
+      }
+    }
+    nextInput.push(item);
+  }
+
+  if (summaries.length === 0) return body;
+
+  const prefix = "Compacted context:\n";
+  const existing = typeof body.instructions === "string" ? body.instructions.trim() : "";
+  const merged = `${existing ? `${existing}\n\n` : ""}${prefix}${summaries.join("\n\n")}`;
+
+  return {
+    ...body,
+    instructions: merged,
+    input: nextInput,
+  };
+}
+
 /**
  * Convert OpenAI Responses API format to standard chat completions format
  * Responses API uses: { input: [...], instructions: "..." }
@@ -21,20 +78,18 @@ export function normalizeResponsesInput(input) {
 export function convertResponsesApiFormat(body) {
   if (!body.input) return body;
 
-  const result = { ...body };
+  const compactedBody = consume9RouterCompactionItems(body);
+  const result = { ...compactedBody };
   result.messages = [];
 
-  // Convert instructions to system message
-  if (body.instructions) {
-    result.messages.push({ role: "system", content: body.instructions });
-  }
+  const instructions = typeof compactedBody.instructions === "string" ? compactedBody.instructions : "";
 
   // Group items by conversation turn
   let currentAssistantMsg = null;
   let pendingToolCalls = [];
   let pendingToolResults = [];
 
-  const inputItems = normalizeResponsesInput(body.input);
+  const inputItems = normalizeResponsesInput(compactedBody.input);
   if (!inputItems) return body;
 
   for (const item of inputItems) {
@@ -115,6 +170,11 @@ export function convertResponsesApiFormat(body) {
     for (const tr of pendingToolResults) {
       result.messages.push(tr);
     }
+  }
+
+  // Convert instructions to system message (prepend)
+  if (instructions && instructions.trim() !== "") {
+    result.messages.unshift({ role: "system", content: instructions });
   }
 
   // Cleanup Responses API specific fields
