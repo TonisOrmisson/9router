@@ -1,5 +1,6 @@
 import { initTranslators } from "open-sse/translator/index.js";
 import crypto from "crypto";
+import { getInternalBaseUrl } from "@/lib/runtimeUrls";
 
 export const runtime = "nodejs";
 
@@ -141,7 +142,7 @@ export async function POST(request) {
     );
   }
 
-  const origin = new URL(request.url).origin;
+  const origin = getInternalBaseUrl(request);
   const summarizeBody = {
     model,
     stream: false,

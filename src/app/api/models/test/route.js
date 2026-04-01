@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiKeys } from "@/lib/localDb";
+import { getInternalBaseUrl } from "@/lib/runtimeUrls";
 
 // POST /api/models/test - Ping a single model via internal completions
 export async function POST(request) {
@@ -7,8 +8,7 @@ export async function POST(request) {
     const { model } = await request.json();
     if (!model) return NextResponse.json({ error: "Model required" }, { status: 400 });
 
-    const url = new URL(request.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = getInternalBaseUrl(request);
 
     // Get an active internal API key for auth (if requireApiKey is enabled)
     let apiKey = null;

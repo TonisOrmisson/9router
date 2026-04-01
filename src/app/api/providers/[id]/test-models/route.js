@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProviderConnectionById, getApiKeys } from "@/lib/localDb";
 import { getProviderModels, PROVIDER_ID_TO_ALIAS } from "open-sse/config/providerModels.js";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
+import { getInternalBaseUrl } from "@/lib/runtimeUrls";
 
 /**
  * Get an active API key to pass through auth when requireApiKey is enabled.
@@ -106,6 +107,5 @@ export async function POST(request, { params }) {
 }
 
 function getBaseUrl(request) {
-  const url = new URL(request.url);
-  return `${url.protocol}//${url.host}`;
+  return getInternalBaseUrl(request);
 }
