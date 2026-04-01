@@ -65,6 +65,10 @@ package-lock.json
 .github/instructions/codacy.instructions.md
 README1.md
 deploy*.sh
+upgrade.sh
 ecosystem.config.*
+.htaccess
 !ecosystem.config.example.cjs
+!upgrade.sh.example
+!.htaccess.example
 

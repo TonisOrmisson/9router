@@ -1,0 +1,17 @@
+# Restrict the whole app to selected client IPs only.
+# Replace the example IPs below with your real allowed addresses/networks.
+
+<IfModule mod_authz_core.c>
+  <RequireAll>
+    Require all denied
+    Require ip 203.0.113.10
+    Require ip 198.51.100.0/24
+  </RequireAll>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+  Order deny,allow
+  Deny from all
+  Allow from 203.0.113.10
+  Allow from 198.51.100.0/24
+</IfModule>
