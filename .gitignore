@@ -67,8 +67,8 @@ README1.md
 deploy*.sh
 upgrade.sh
 ecosystem.config.*
-.htaccess
+public/.htaccess
 !ecosystem.config.example.cjs
 !upgrade.sh.example
-!.htaccess.example
+!public/.htaccess.example
 
