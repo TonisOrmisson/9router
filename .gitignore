@@ -66,4 +66,5 @@ package-lock.json
 README1.md
 deploy.sh
 ecosystem.config.*
+!ecosystem.config.example.cjs
 
