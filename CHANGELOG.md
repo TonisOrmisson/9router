@@ -1,3 +1,47 @@
+# v0.3.90 (2026-04-14)
+
+## Features
+- Add proactive token refresh lead times for providers and Codex proxy management
+- Enhance CodexExecutor with compact URL support
+
+## Improvements
+- Enhance Windows Tailscale installation with curl support and fallback to well-known Windows path
+- Refactor execSync and spawn calls with windowsHide option for better Windows compatibility
+
+## Fixes
+- Fix noAuth support for providers and adjusted MITM restart settings
+- Bug fixes
+
+# v0.3.89 (2026-04-13)
+
+## Improvements
+- Improved dashboard access control by blocking tunnel/Tailscale access when disabled
+
+# v0.3.87 (2026-04-13)
+
+## Fixes
+- Fix codex cache session id
+
+# v0.3.86 (2026-04-13)
+
+## Features
+- Add provider models and thinking configurations for enhanced chat handling
+- Add Vercel relay support to proxy functionality
+- Add Vercel deploy endpoint for proxy pools management
+
+## Improvements
+- Enhance proxy functionality with new relay capabilities
+- Streamline GitHub Actions Docker publish workflow
+- Update Docker configuration and package management
+
+## Fixes
+- Remove obsolete 9remote installation/management APIs
+
+# v0.3.83 (2026-04-08)
+
+## Fixes
+- Fix OpenRouter custom models not showing after being added
+
 # Unreleased
 
 ## Features

@@ -20,6 +20,10 @@ vi.mock("jose", () => ({
   jwtVerify: vi.fn(async () => ({ payload: {} })),
 }));
 
+vi.mock("@/lib/localDb", () => ({
+  getSettings: vi.fn(async () => ({ requireLogin: true })),
+}));
+
 describe("dashboardGuard IP allowlist", () => {
   const originalEnabled = process.env.IP_ALLOWLIST_ENABLED;
   const originalAllowlist = process.env.IP_ALLOWLIST;
