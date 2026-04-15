@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { evaluateIpAllowlist, getForwardedClientHeaders } from "@/lib/ipAllowlist";
+import { getSettings } from "@/lib/localDb";
+import { evaluateIpAllowlist } from "@/lib/ipAllowlist";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "9router-default-secret-change-me"
@@ -37,19 +38,19 @@ async function hasValidToken(request) {
   }
 }
 
+// Read settings directly from DB to avoid self-fetch deadlock in proxy
+async function loadSettings() {
+  try {
+    return await getSettings();
+  } catch {
+    return null;
+  }
+}
+
 async function isAuthenticated(request) {
   if (await hasValidToken(request)) return true;
-  // Allow if requireLogin is disabled
-  const origin = process.env.BASE_URL || request.nextUrl.origin;
-  try {
-    const res = await fetch(`${origin}/api/settings/require-login`, {
-      headers: getForwardedClientHeaders(request),
-    });
-    const data = await res.json();
-    if (data.requireLogin === false) return true;
-  } catch {
-    // On error, require login
-  }
+  const settings = await loadSettings();
+  if (settings && settings.requireLogin === false) return true;
   return false;
 }
 
@@ -71,9 +72,11 @@ export async function proxy(request) {
     return new NextResponse("IP allowlist misconfigured", { status: 500 });
   }
 
+  const isLocal = isLocalRequest(request);
+
   // Always protected - allow localhost or valid JWT only
   if (ALWAYS_PROTECTED.some((p) => pathname.startsWith(p))) {
-    if (isLocalRequest(request) || await hasValidToken(request))
+    if (isLocal || await hasValidToken(request))
       return NextResponse.next();
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -81,41 +84,51 @@ export async function proxy(request) {
   // Protect sensitive API endpoints (bypass if localhost or requireLogin = false)
   if (PROTECTED_API_PATHS.some((p) => pathname.startsWith(p))) {
     if (pathname === "/api/settings/require-login") return NextResponse.next();
-    if (isLocalRequest(request) || await isAuthenticated(request))
+    if (isLocal || await isAuthenticated(request))
       return NextResponse.next();
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-
   // Protect all dashboard routes
   if (pathname.startsWith("/dashboard")) {
-    const token = request.cookies.get("auth_token")?.value;
+    let requireLogin = true;
+    let tunnelDashboardAccess = true;
 
+    try {
+      const settings = await loadSettings();
+      if (settings) {
+        requireLogin = settings.requireLogin !== false;
+        tunnelDashboardAccess = settings.tunnelDashboardAccess === true;
+
+        // Block tunnel/tailscale access if disabled (redirect to login)
+        if (!tunnelDashboardAccess) {
+          const host = (request.headers.get("host") || "").split(":")[0].toLowerCase();
+          const tunnelHost = settings.tunnelUrl ? new URL(settings.tunnelUrl).hostname.toLowerCase() : "";
+          const tailscaleHost = settings.tailscaleUrl ? new URL(settings.tailscaleUrl).hostname.toLowerCase() : "";
+          if ((tunnelHost && host === tunnelHost) || (tailscaleHost && host === tailscaleHost)) {
+            return NextResponse.redirect(new URL("/login", request.url));
+          }
+        }
+      }
+    } catch {
+      // On error, keep defaults (require login, block tunnel)
+    }
+
+    if (!requireLogin) return NextResponse.next();
+
+    const token = request.cookies.get("auth_token")?.value;
     if (token) {
       try {
         await jwtVerify(token, SECRET);
         return NextResponse.next();
-      } catch (err) {
+      } catch {
         return NextResponse.redirect(new URL("/login", request.url));
       }
     }
 
-    const origin = process.env.BASE_URL || request.nextUrl.origin;
-    try {
-      const res = await fetch(`${origin}/api/settings/require-login`, {
-        headers: getForwardedClientHeaders(request),
-      });
-      const data = await res.json();
-      if (data.requireLogin === false) {
-        return NextResponse.next();
-      }
-    } catch (err) {
-      // On error, require login
-    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect / to /dashboard if logged in, or /dashboard if it's the root
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
