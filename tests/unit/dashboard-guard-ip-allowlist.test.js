@@ -85,4 +85,29 @@ describe("dashboardGuard IP allowlist", () => {
       status: 200,
     });
   });
+
+  it("allows protected api requests when requireLogin is disabled in settings", async () => {
+    const { getSettings } = await import("@/lib/localDb");
+    vi.mocked(getSettings).mockResolvedValueOnce({ requireLogin: false });
+
+    const { proxy } = await import("../../src/dashboardGuard.js");
+
+    const response = await proxy({
+      headers: new Headers({
+        host: "app.example.com",
+        "x-forwarded-for": "203.0.113.10",
+      }),
+      nextUrl: {
+        pathname: "/api/settings",
+        origin: "https://app.example.com",
+      },
+      cookies: { get: () => undefined },
+      url: "https://app.example.com/api/settings",
+    });
+
+    expect(response).toEqual({
+      type: "next",
+      status: 200,
+    });
+  });
 });
