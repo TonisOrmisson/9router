@@ -31,10 +31,12 @@ describe("proxy matcher", () => {
     ).toBe(true);
   });
 
-  it("does not run for static assets", async () => {
+  it("runs for login and static asset requests when strict IP blocking is enabled", async () => {
     const { config } = await import("../../src/proxy.js");
 
-    expect(matchesConfig("/favicon.ico", config.matcher)).toBe(false);
-    expect(matchesConfig("/logo.svg", config.matcher)).toBe(false);
+    expect(matchesConfig("/login", config.matcher)).toBe(true);
+    expect(matchesConfig("/_next/static/chunks/main.js", config.matcher)).toBe(true);
+    expect(matchesConfig("/favicon.ico", config.matcher)).toBe(true);
+    expect(matchesConfig("/images/logo.svg", config.matcher)).toBe(true);
   });
 });
