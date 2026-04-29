@@ -13,6 +13,9 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     ? (provider === "grok-web" ? "sso=xxxxx... or just the raw value" : "eyJhbGciOi...")
     : "";
 
+  const isAzure = provider === "azure";
+  const isCloudflareAi = provider === "cloudflare-ai";
+
   const [formData, setFormData] = useState({
     name: "",
     apiKey: "",
@@ -20,6 +23,13 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
     proxyPoolId: NONE_PROXY_POOL_VALUE,
     ollamaHostUrl: "",
   });
+  const [azureData, setAzureData] = useState({
+    azureEndpoint: "",
+    apiVersion: "2024-10-01-preview",
+    deployment: "",
+    organization: "",
+  });
+  const [cloudflareData, setCloudflareData] = useState({ accountId: "" });
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -27,6 +37,17 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
   const buildProviderSpecificData = () => {
     if (isOllamaLocal && formData.ollamaHostUrl.trim()) {
       return { baseUrl: formData.ollamaHostUrl.trim() };
+    }
+    if (isAzure) {
+      return {
+        azureEndpoint: azureData.azureEndpoint,
+        apiVersion: azureData.apiVersion,
+        deployment: azureData.deployment,
+        organization: azureData.organization,
+      };
+    }
+    if (isCloudflareAi) {
+      return { accountId: cloudflareData.accountId };
     }
     return undefined;
   };
@@ -164,6 +185,52 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             }
           </p>
         )}
+        {isCloudflareAi && (
+          <div className="bg-sidebar/50 p-4 rounded-lg border border-accent/20">
+            <h3 className="font-semibold mb-3 text-sm">Cloudflare Workers AI</h3>
+            <Input
+              label="Account ID"
+              value={cloudflareData.accountId}
+              onChange={(e) => setCloudflareData({ ...cloudflareData, accountId: e.target.value })}
+              placeholder="abc123def456..."
+            />
+            <p className="text-xs text-text-muted mt-2">
+              Find your Account ID in the right sidebar of <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">dash.cloudflare.com</a>
+            </p>
+          </div>
+        )}
+        {isAzure && (
+          <div className="bg-sidebar/50 p-4 rounded-lg border border-accent/20">
+            <h3 className="font-semibold mb-3 text-sm">Azure OpenAI Configuration</h3>
+            <div className="flex flex-col gap-3">
+              <Input
+                label="Azure Endpoint"
+                value={azureData.azureEndpoint}
+                onChange={(e) => setAzureData({ ...azureData, azureEndpoint: e.target.value })}
+                placeholder="https://your-resource.openai.azure.com"
+              />
+              <Input
+                label="Deployment Name"
+                value={azureData.deployment}
+                onChange={(e) => setAzureData({ ...azureData, deployment: e.target.value })}
+                placeholder="gpt-4"
+              />
+              <Input
+                label="API Version"
+                value={azureData.apiVersion}
+                onChange={(e) => setAzureData({ ...azureData, apiVersion: e.target.value })}
+                placeholder="2024-10-01-preview"
+              />
+              <Input
+                label="Organization"
+                value={azureData.organization}
+                onChange={(e) => setAzureData({ ...azureData, organization: e.target.value })}
+                placeholder="Organization ID"
+              />
+            </div>
+          </div>
+        )}
+
         <Input
           label="Priority"
           type="number"
@@ -193,7 +260,8 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         </p>
 
         <div className="flex gap-2">
-          <Button onClick={handleSubmit} fullWidth disabled={saving || (!isOllamaLocal && (!formData.name || !formData.apiKey))}>
+          <Button onClick={handleSubmit} fullWidth disabled={saving || (!isOllamaLocal && (!formData.name || !formData.apiKey)) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
+
             {saving ? "Saving..." : "Save"}
           </Button>
           <Button onClick={onClose} variant="ghost" fullWidth>
