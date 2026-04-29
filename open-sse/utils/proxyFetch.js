@@ -21,6 +21,35 @@ const HTTPS_PORT = 443;
 const HTTP_SUCCESS_MIN = 200;
 const HTTP_SUCCESS_MAX = 300;
 
+function isAnthropicApiUrl(targetUrl) {
+  try {
+    return new URL(targetUrl).hostname === "api.anthropic.com";
+  } catch {
+    return false;
+  }
+}
+
+function isStreamingRequest(options) {
+  const headers = new Headers(options.headers || {});
+  return headers.get("accept")?.includes("text/event-stream") === true;
+}
+
+async function fetchAnthropicWithGotScraping(targetUrl, options) {
+  const { gotScraping } = await import("got-scraping");
+  const response = await gotScraping(targetUrl, {
+    method: options.method || "GET",
+    headers: options.headers,
+    body: options.body,
+    throwHttpErrors: false,
+  });
+
+  return new Response(response.rawBody, {
+    status: response.statusCode,
+    statusText: response.statusMessage,
+    headers: response.headers,
+  });
+}
+
 function normalizeString(value) {
   if (value === undefined || value === null) return "";
   return String(value).trim();
@@ -208,6 +237,14 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
       "x-relay-path": `${parsed.pathname}${parsed.search}`,
     };
     return originalFetch(vercelRelayUrl, { ...options, headers: relayHeaders });
+  }
+
+  if (isAnthropicApiUrl(targetUrl) && !isStreamingRequest(options)) {
+    try {
+      return await fetchAnthropicWithGotScraping(targetUrl, options);
+    } catch (error) {
+      console.warn(`[ProxyFetch] got-scraping failed, falling back to fetch: ${error.message}`);
+    }
   }
 
   const connectionProxyUrl = resolveConnectionProxyUrl(targetUrl, proxyOptions);

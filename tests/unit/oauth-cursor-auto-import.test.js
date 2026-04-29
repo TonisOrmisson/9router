@@ -156,9 +156,9 @@ describe("GET /api/oauth/cursor/auto-import", () => {
     expect(response.body.error).toContain("Please login to Cursor IDE first");
   });
 
-  // ── Backwards-compatible: linux/win32 keep original single-path logic ─
+  // ── Linux/win32 path probing ─────────────────────────────────────────
 
-  it("linux uses single hardcoded path and original error message", async () => {
+  it("linux reports checked config paths when no Cursor database is accessible", async () => {
     Object.defineProperty(process, "platform", { value: "linux", writable: true });
     vi.mocked(fsPromises.access).mockRejectedValue(new Error("ENOENT"));
     mockDbInstance.__throwOnConstruct = true;
@@ -166,11 +166,10 @@ describe("GET /api/oauth/cursor/auto-import", () => {
     const response = await GET();
 
     expect(response.body.found).toBe(false);
-    expect(response.body.error).toBe(
-      "Cursor database not found. Make sure Cursor IDE is installed and you are logged in."
-    );
-    // fs/promises.access should NOT have been called (linux skips probing)
-    expect(fsPromises.access).not.toHaveBeenCalled();
+    expect(response.body.error).toContain("Cursor database not found. Checked locations:");
+    expect(response.body.error).toContain("/mock/home/.config/Cursor/User/globalStorage/state.vscdb");
+    expect(response.body.error).toContain("/mock/home/.config/cursor/User/globalStorage/state.vscdb");
+    expect(fsPromises.access).toHaveBeenCalled();
   });
 
   it("unsupported platform returns 400", async () => {
