@@ -1,8 +1,6 @@
 import { Readable } from "stream";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 
-const isCloud = typeof caches !== "undefined" && typeof caches === "object";
-
 const originalFetch = globalThis.fetch;
 const proxyDispatchers = new Map();
 
@@ -300,8 +298,8 @@ async function patchedFetch(url, options = {}) {
 }
 
 // Idempotency guard — only patch once to avoid wrapping multiple times
-if (!isCloud && globalThis.fetch !== patchedFetch) {
+if (globalThis.fetch !== patchedFetch) {
   globalThis.fetch = patchedFetch;
 }
 
-export default isCloud ? originalFetch : patchedFetch;
+export default patchedFetch;

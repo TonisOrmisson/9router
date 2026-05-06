@@ -12,7 +12,7 @@ export const MITM_TOOLS = {
     defaultModels: [
       { id: "gemini-3.1-pro-high", name: "Gemini 3.1 Pro High", alias: "gemini-3.1-pro-high" },
       { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro Low", alias: "gemini-3.1-pro-low" },
-      { id: "gemini-3-flash", name: "Gemini 3 Flash", alias: "gemini-3-flash" },
+      { id: "gemini-3-flash", name: "Gemini 3 Flash / Default", alias: "gemini-3-flash" },
       { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", alias: "claude-sonnet-4-6" },
       { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 Thinking", alias: "claude-opus-4-6-thinking" },
       { id: "gpt-oss-120b-medium", name: "GPT OSS 120B Medium", alias: "gpt-oss-120b-medium" },
@@ -114,6 +114,22 @@ export const CLI_TOOLS = {
     description: "OpenCode AI Terminal Assistant",
     configType: "custom",
   },
+  cowork: {
+    id: "cowork",
+    name: "Claude Cowork",
+    image: "/providers/claude.png",
+    color: "#D97757",
+    description: "Claude Desktop Cowork (third-party inference)",
+    configType: "custom",
+  },
+  hermes: {
+    id: "hermes",
+    name: "Hermes Agent",
+    image: "/providers/hermes.png",
+    color: "#8B5CF6",
+    description: "Nous Research self-improving AI agent",
+    configType: "custom",
+  },
   droid: {
     id: "droid",
     name: "Factory Droid",
@@ -211,14 +227,6 @@ export const CLI_TOOLS = {
   "apiKey": "{{apiKey}}"
 }`,
     },
-  },
-  hermes: {
-    id: "hermes",
-    name: "Hermes Agent",
-    image: "/providers/hermes.png",
-    color: "#8B5CF6",
-    description: "Nous Research self-improving AI agent",
-    configType: "custom",
   },
   // HIDDEN: gemini-cli
   // "gemini-cli": {

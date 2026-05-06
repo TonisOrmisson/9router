@@ -70,3 +70,5 @@ ecosystem.config.*
 public/.htaccess
 upgrade.sh
 
+scripts/agSniffer/*
+gitbooks/*
