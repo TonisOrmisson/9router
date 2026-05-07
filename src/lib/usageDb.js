@@ -181,7 +181,7 @@ export async function getActiveRequests() {
     const { getProviderConnections } = await import("@/lib/localDb.js");
     const allConnections = await getProviderConnections();
     for (const conn of allConnections) {
-      connectionMap[conn.id] = conn.name || conn.email || conn.id;
+      connectionMap[conn.id] = getConnectionDisplayName(conn, conn.id);
     }
   } catch {}
 
@@ -366,7 +366,7 @@ export async function appendRequestLog({ model, provider, connectionId, tokens, 
       const connections = await getProviderConnections();
       const conn = connections.find(c => c.id === connectionId);
       if (conn) {
-        account = conn.name || conn.email || account;
+        account = getConnectionDisplayName(conn, account);
       }
     } catch {}
 
@@ -477,6 +477,13 @@ async function calculateCost(provider, model, tokens) {
 
 const PERIOD_MS = { "24h": 86400000, "7d": 604800000, "30d": 2592000000, "60d": 5184000000 };
 
+function getConnectionDisplayName(conn, fallback) {
+  if (!conn) return fallback;
+  const name = conn.name || conn.displayName || "";
+  if (name && conn.email && conn.email !== name) return `${name} (${conn.email})`;
+  return name || conn.email || conn.id || fallback;
+}
+
 /**
  * Get aggregated usage stats
  * @param {"24h"|"7d"|"30d"|"60d"|"all"} period - Time period to filter
@@ -492,7 +499,7 @@ export async function getUsageStats(period = "all") {
   try { allConnections = await getProviderConnections(); } catch {}
   const connectionMap = {};
   for (const conn of allConnections) {
-    connectionMap[conn.id] = conn.name || conn.email || conn.id;
+    connectionMap[conn.id] = getConnectionDisplayName(conn, conn.id);
   }
 
   const providerNodeNameMap = {};

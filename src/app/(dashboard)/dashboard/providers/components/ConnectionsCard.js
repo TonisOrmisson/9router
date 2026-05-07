@@ -93,9 +93,9 @@ function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMov
     return "default";
   };
 
-  const displayName = isOAuth
-    ? connection.name || connection.email || connection.displayName || "OAuth Account"
-    : connection.name;
+  const accountName = connection.name || connection.displayName || (isOAuth ? "OAuth Account" : "");
+  const accountEmail = isOAuth && connection.email && connection.email !== accountName ? connection.email : "";
+  const displayName = isOAuth ? accountName : connection.name;
 
   const handleSelectProxy = async (poolId) => {
     setUpdatingProxy(true);
@@ -117,6 +117,7 @@ function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMov
         <span className="material-symbols-outlined text-base text-text-muted">{isOAuth ? "lock" : "key"}</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{displayName}</p>
+          {accountEmail && <p className="mt-0.5 truncate text-xs text-text-muted">{accountEmail}</p>}
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <Badge variant={getStatusVariant()} size="sm" dot>
               {connection.isActive === false ? "disabled" : (effectiveStatus || "Unknown")}

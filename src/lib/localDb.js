@@ -364,9 +364,12 @@ export async function createProviderConnection(data) {
   // Upsert: check existing by provider + email (oauth) or provider + name (apikey)
   let existingIndex = -1;
   if (data.authType === "oauth" && data.email) {
-    existingIndex = db.data.providerConnections.findIndex(
-      c => c.provider === data.provider && c.authType === "oauth" && c.email === data.email
-    );
+    const chatgptAccountId = data.provider === "codex" ? data.providerSpecificData?.chatgptAccountId : null;
+    existingIndex = db.data.providerConnections.findIndex(c => {
+      if (c.provider !== data.provider || c.authType !== "oauth") return false;
+      if (chatgptAccountId) return c.providerSpecificData?.chatgptAccountId === chatgptAccountId;
+      return c.email === data.email;
+    });
   } else if (data.authType === "apikey" && data.name) {
     existingIndex = db.data.providerConnections.findIndex(
       c => c.provider === data.provider && c.authType === "apikey" && c.name === data.name

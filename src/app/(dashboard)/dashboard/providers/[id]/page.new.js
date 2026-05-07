@@ -1137,9 +1137,9 @@ CooldownTimer.propTypes = {
 };
 
 function ConnectionRow({ connection, isOAuth, isFirst, isLast, onMoveUp, onMoveDown, onToggleActive, onEdit, onDelete }) {
-  const displayName = isOAuth
-    ? connection.name || connection.email || connection.displayName || "OAuth Account"
-    : connection.name;
+  const accountName = connection.name || connection.displayName || (isOAuth ? "OAuth Account" : "");
+  const accountEmail = isOAuth && connection.email && connection.email !== accountName ? connection.email : "";
+  const displayName = isOAuth ? accountName : connection.name;
 
   // Use useState + useEffect for impure Date.now() to avoid calling during render
   const [isCooldown, setIsCooldown] = useState(false);
@@ -1204,6 +1204,7 @@ function ConnectionRow({ connection, isOAuth, isFirst, isLast, onMoveUp, onMoveD
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{displayName}</p>
+          {accountEmail && <p className="mt-0.5 truncate text-xs text-text-muted">{accountEmail}</p>}
           <div className="flex items-center gap-2 mt-1">
             <Badge variant={getStatusVariant()} size="sm" dot>
               {connection.isActive === false ? "disabled" : (effectiveStatus || "Unknown")}

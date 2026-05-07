@@ -65,10 +65,9 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
     }
   };
 
-  const isEmail = (v) => typeof v === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const displayName = isOAuth
-    ? (isEmail(connection.email) ? connection.email : (isEmail(connection.name) ? connection.name : (connection.name || connection.email || connection.displayName || "OAuth Account")))
-    : connection.name;
+  const accountName = connection.name || connection.displayName || (isOAuth ? "OAuth Account" : "");
+  const accountEmail = isOAuth && connection.email && connection.email !== accountName ? connection.email : "";
+  const displayName = isOAuth ? accountName : connection.name;
 
   // Use useState + useEffect for impure Date.now() to avoid calling during render
   const [isCooldown, setIsCooldown] = useState(false);
@@ -134,6 +133,9 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{displayName}</p>
+          {accountEmail && (
+            <p className="mt-0.5 truncate text-xs text-text-muted">{accountEmail}</p>
+          )}
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
             <Badge variant={getStatusVariant()} size="sm" dot>
               {connection.isActive === false ? "disabled" : (effectiveStatus || "Unknown")}
