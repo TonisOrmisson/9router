@@ -649,13 +649,12 @@ export default function ProviderLimits() {
                       <h3 className="text-sm font-semibold text-text-primary capitalize truncate">
                         {conn.provider}
                       </h3>
-                      {(() => {
-                        const isEmail = (v) => typeof v === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-                        const label = isEmail(conn.email) ? conn.email : (isEmail(conn.name) ? conn.name : conn.name);
-                        return label ? (
-                          <p className="text-xs text-text-muted truncate">{label}</p>
-                        ) : null;
-                      })()}
+                      {(conn.name || conn.displayName) && (
+                        <p className="text-xs font-medium text-text-primary truncate">{conn.name || conn.displayName}</p>
+                      )}
+                      {conn.email && conn.email !== (conn.name || conn.displayName) && (
+                        <p className="text-xs text-text-muted truncate">{conn.email}</p>
+                      )}
                     </div>
                   </div>
 
