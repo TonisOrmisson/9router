@@ -7,8 +7,7 @@ export async function POST(request) {
     const { model, kind } = await request.json();
     if (!model) return NextResponse.json({ error: "Model required" }, { status: 400 });
 
-    const url = new URL(request.url);
-    const baseUrl = `${url.protocol}//${url.host}`;
+    const baseUrl = getSelfBaseUrl(request);
 
     // Get an active internal API key for auth (if requireApiKey is enabled)
     let apiKey = null;
@@ -120,4 +119,10 @@ export async function POST(request) {
     const error = causeMessage ? `${err.message}: ${causeMessage}` : err.message;
     return NextResponse.json({ ok: false, error }, { status: 500 });
   }
+}
+
+function getSelfBaseUrl(request) {
+  const url = new URL(request.url);
+  const hostname = url.hostname === "0.0.0.0" ? "127.0.0.1" : url.hostname;
+  return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}`;
 }
