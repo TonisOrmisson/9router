@@ -122,6 +122,7 @@ export async function POST(request) {
 }
 
 function getSelfBaseUrl(request) {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
   const url = new URL(request.url);
   const hostname = url.hostname === "0.0.0.0" ? "127.0.0.1" : url.hostname;
   return `${url.protocol}//${hostname}${url.port ? `:${url.port}` : ""}`;
