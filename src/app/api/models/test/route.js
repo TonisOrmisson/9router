@@ -7,8 +7,8 @@ export async function POST(request) {
     const { model, kind } = await request.json();
     if (!model) return NextResponse.json({ error: "Model required" }, { status: 400 });
 
-    const baseUrl = process.env.BASE_URL ||
-      (() => { const u = new URL(request.url); return `${u.protocol}//${u.host}`; })();
+    const url = new URL(request.url);
+    const baseUrl = `${url.protocol}//${url.host}`;
 
     // Get an active internal API key for auth (if requireApiKey is enabled)
     let apiKey = null;
