@@ -110,6 +110,14 @@ export async function POST(request) {
 
     return NextResponse.json({ ok: true, latencyMs, error: null, status: res.status });
   } catch (err) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[API ERROR] /api/models/test failed:", {
+      message: err?.message,
+      cause: err?.cause,
+      stack: err?.stack,
+    });
+
+    const causeMessage = err?.cause?.message || err?.cause?.code || "";
+    const error = causeMessage ? `${err.message}: ${causeMessage}` : err.message;
+    return NextResponse.json({ ok: false, error }, { status: 500 });
   }
 }
