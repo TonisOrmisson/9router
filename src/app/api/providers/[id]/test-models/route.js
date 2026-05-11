@@ -64,10 +64,12 @@ export async function POST(request, { params }) {
 
     let models = getProviderModels(alias);
 
+    const baseUrl = getBaseUrl(request);
+
     // Compatible providers: fetch live model list
     if (isCompatible && models.length === 0) {
       try {
-        const modelsRes = await fetch(`${getBaseUrl(request)}/api/providers/${id}/models`);
+        const modelsRes = await fetch(`${baseUrl}/api/providers/${id}/models`);
         if (modelsRes.ok) {
           const data = await modelsRes.json();
           models = (data.models || []).map((m) => ({ id: m.id || m.name, name: m.name || m.id }));
@@ -79,7 +81,6 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "No models configured for this provider" }, { status: 400 });
     }
 
-    const baseUrl = getBaseUrl(request);
     const apiKey = await getInternalApiKey();
 
     // Warm up with first model to trigger token refresh (if needed) before parallel calls.

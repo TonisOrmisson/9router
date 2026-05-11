@@ -72,3 +72,4 @@ upgrade.sh
 
 scripts/agSniffer/*
 gitbooks/*
+gitbook/README.md
