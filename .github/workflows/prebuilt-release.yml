@@ -1,0 +1,37 @@
+name: Build Prebuilt Standalone
+
+on:
+  push:
+    branches:
+      - to/main
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build prebuilt archive
+        run: scripts/create-prebuilt.sh
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 9router-prebuilt
+          path: dist/9router-prebuilt-*.tar.gz
+          if-no-files-found: error
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/9router-prebuilt-*.tar.gz --clobber
