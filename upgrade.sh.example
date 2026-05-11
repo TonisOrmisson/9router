@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+if [ ! -f .env ]; then
+  echo ".env missing" >&2
+  exit 1
+fi
+
+while IFS='=' read -r key value; do
+  [[ "$key" =~ ^[[:space:]]*# ]] && continue
+  [[ "$key" =~ ^[[:space:]]*$ ]] && continue
+
+  key="${key#export }"
+  key="${key%%[[:space:]]*}"
+
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+
+  export "$key=$value"
+done < .env
+
+git fetch origin to/main
+git checkout to/main
+git reset --hard origin/to/main
+
+PREBUILT_URL="$(
+  curl -fsSL "https://api.github.com/repos/TonisOrmisson/9router/releases?per_page=20" |
+    node -e '
+      let s = "";
+      process.stdin.on("data", d => s += d);
+      process.stdin.on("end", () => {
+        const releases = JSON.parse(s);
+        for (const release of releases) {
+          const asset = (release.assets || []).find(a =>
+            a.name.startsWith("9router-prebuilt-") && a.name.endsWith(".tar.gz")
+          );
+          if (asset) {
+            console.log(asset.browser_download_url);
+            return;
+          }
+        }
+        process.exit(1);
+      });
+    '
+)"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+curl -fL "$PREBUILT_URL" -o "$tmp/prebuilt.tar.gz"
+rm -rf .next/standalone .next/static
+mkdir -p .next/standalone
+tar -xzf "$tmp/prebuilt.tar.gz" -C .next/standalone
+
+pm2 delete 9router || true
+pm2 start ecosystem.config.cjs --update-env
+pm2 save
+pm2 status 9router
+
+git status
