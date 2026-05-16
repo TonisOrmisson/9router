@@ -15,6 +15,10 @@ import {
   clearCodexSession,
 } from "@/lib/oauth/utils/server";
 
+function oauthDebug(event, data = {}) {
+  console.log(`[OAuth Debug] ${event}`, data);
+}
+
 /**
  * Dynamic OAuth API Route
  * Handles: authorize, exchange, device-code, poll
@@ -138,6 +142,14 @@ export async function POST(request, { params }) {
 
     if (action === "exchange") {
       const { code, redirectUri, codeVerifier, state, meta } = body;
+      oauthDebug("exchange:start", {
+        provider,
+        hasCode: Boolean(code),
+        hasRedirectUri: Boolean(redirectUri),
+        hasCodeVerifier: Boolean(codeVerifier),
+        hasState: Boolean(state),
+        metaKeys: meta ? Object.keys(meta) : [],
+      });
 
       // Cline uses authorization_code without PKCE
       const noPkceExchangeProviders = ["cline"];
@@ -147,6 +159,16 @@ export async function POST(request, { params }) {
 
       // Exchange code for tokens (meta carries provider-specific params, e.g. gitlab clientId/baseUrl)
       const tokenData = await exchangeTokens(provider, code, redirectUri, codeVerifier, state, meta);
+      oauthDebug("exchange:tokens", {
+        provider,
+        email: tokenData.email || null,
+        displayName: tokenData.displayName || null,
+        hasAccessToken: Boolean(tokenData.accessToken),
+        hasRefreshToken: Boolean(tokenData.refreshToken),
+        hasIdToken: Boolean(tokenData.idToken),
+        expiresIn: tokenData.expiresIn || null,
+        providerSpecificDataKeys: tokenData.providerSpecificData ? Object.keys(tokenData.providerSpecificData) : [],
+      });
 
       // Save to database
       const connection = await createProviderConnection({
@@ -157,6 +179,14 @@ export async function POST(request, { params }) {
           ? new Date(Date.now() + tokenData.expiresIn * 1000).toISOString() 
           : null,
         testStatus: "active",
+      });
+      oauthDebug("exchange:saved", {
+        provider,
+        connectionId: connection.id,
+        email: connection.email || null,
+        name: connection.name || null,
+        authType: connection.authType,
+        isActive: connection.isActive,
       });
 
       return NextResponse.json({ 
@@ -194,6 +224,17 @@ export async function POST(request, { params }) {
       }
 
       if (result.success) {
+        oauthDebug("poll:tokens", {
+          provider,
+          email: result.tokens?.email || null,
+          displayName: result.tokens?.displayName || null,
+          hasAccessToken: Boolean(result.tokens?.accessToken),
+          hasRefreshToken: Boolean(result.tokens?.refreshToken),
+          hasIdToken: Boolean(result.tokens?.idToken),
+          expiresIn: result.tokens?.expiresIn || null,
+          providerSpecificDataKeys: result.tokens?.providerSpecificData ? Object.keys(result.tokens.providerSpecificData) : [],
+        });
+
         // Save to database
         const connection = await createProviderConnection({
           provider,
@@ -203,6 +244,14 @@ export async function POST(request, { params }) {
             ? new Date(Date.now() + result.tokens.expiresIn * 1000).toISOString() 
             : null,
           testStatus: "active",
+        });
+        oauthDebug("poll:saved", {
+          provider,
+          connectionId: connection.id,
+          email: connection.email || null,
+          name: connection.name || null,
+          authType: connection.authType,
+          isActive: connection.isActive,
         });
 
         return NextResponse.json({ 

@@ -106,6 +106,15 @@ export async function createProviderConnection(data) {
     if (existing) {
       const merged = { ...existing, ...data, updatedAt: now };
       upsert(db, merged);
+      console.log("[ProviderConnection Debug] updated existing connection", {
+        provider: data.provider,
+        authType: data.authType,
+        id: existing.id,
+        matchedBy: data.authType === "oauth" && data.email ? "email" : "name",
+        email: data.email || existing.email || null,
+        name: data.name || existing.name || null,
+        isActive: merged.isActive,
+      });
       result = merged;
       return;
     }
@@ -139,6 +148,15 @@ export async function createProviderConnection(data) {
 
     upsert(db, conn);
     reorderInTx(db, data.provider);
+    console.log("[ProviderConnection Debug] created connection", {
+      provider: conn.provider,
+      authType: conn.authType,
+      id: conn.id,
+      email: conn.email || null,
+      name: conn.name || null,
+      priority: conn.priority,
+      isActive: conn.isActive,
+    });
     result = conn;
   });
 
@@ -169,6 +187,10 @@ export async function deleteProviderConnection(id) {
     if (!row) return;
     db.run(`DELETE FROM providerConnections WHERE id = ?`, [id]);
     reorderInTx(db, row.provider);
+    console.log("[ProviderConnection Debug] deleted connection", {
+      provider: row.provider,
+      id,
+    });
     ok = true;
   });
   return ok;
