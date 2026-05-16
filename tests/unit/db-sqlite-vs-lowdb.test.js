@@ -101,6 +101,35 @@ describe("DB SQLite layer — public API parity", () => {
     expect(back.providerSpecificData).toEqual({ foo: "bar" });
   });
 
+  it("providerConnections: codex oauth dedupes by ChatGPT account id before email", async () => {
+    const personal = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "same@example.com",
+      name: "same@example.com #personal",
+      isActive: false,
+      providerSpecificData: { chatgptAccountId: "personal-account" },
+      accessToken: "personal-token",
+    });
+
+    const business = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "same@example.com",
+      name: "same@example.com #business",
+      providerSpecificData: { chatgptAccountId: "business-account" },
+      accessToken: "business-token",
+    });
+
+    expect(business.id).not.toBe(personal.id);
+
+    const list = await sqliteDb.getProviderConnections({ provider: "codex" });
+    const sameEmail = list.filter((c) => c.email === "same@example.com");
+    expect(sameEmail).toHaveLength(2);
+    expect(sameEmail.find((c) => c.providerSpecificData?.chatgptAccountId === "personal-account")?.isActive).toBe(false);
+    expect(sameEmail.find((c) => c.providerSpecificData?.chatgptAccountId === "business-account")?.isActive).toBe(true);
+  });
+
   it("providerNodes: CRUD", async () => {
     const n = await sqliteDb.createProviderNode({ type: "openai", name: "Test", baseUrl: "https://api.test", apiType: "openai" });
     expect(n.id).toBeDefined();

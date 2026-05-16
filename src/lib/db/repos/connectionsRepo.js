@@ -56,6 +56,30 @@ function upsert(db, c) {
   );
 }
 
+function getChatGptAccountId(connection) {
+  return connection?.providerSpecificData?.chatgptAccountId || null;
+}
+
+function findExistingConnection(all, data) {
+  if (data.authType === "oauth" && data.provider === "codex" && getChatGptAccountId(data)) {
+    const accountId = getChatGptAccountId(data);
+    const existing = all.find((c) => c.authType === "oauth" && getChatGptAccountId(c) === accountId);
+    return { existing, matchedBy: existing ? "chatgptAccountId" : null };
+  }
+
+  if (data.authType === "oauth" && data.email) {
+    const existing = all.find(c => c.authType === "oauth" && c.email === data.email);
+    return { existing, matchedBy: existing ? "email" : null };
+  }
+
+  if (data.authType === "apikey" && data.name) {
+    const existing = all.find(c => c.authType === "apikey" && c.name === data.name);
+    return { existing, matchedBy: existing ? "name" : null };
+  }
+
+  return { existing: null, matchedBy: null };
+}
+
 export async function getProviderConnections(filter = {}) {
   const db = await getAdapter();
   const where = [];
@@ -95,13 +119,7 @@ export async function createProviderConnection(data) {
 
   db.transaction(() => {
     const all = db.all(`SELECT * FROM providerConnections WHERE provider = ?`, [data.provider]).map(rowToConn);
-
-    let existing = null;
-    if (data.authType === "oauth" && data.email) {
-      existing = all.find(c => c.authType === "oauth" && c.email === data.email);
-    } else if (data.authType === "apikey" && data.name) {
-      existing = all.find(c => c.authType === "apikey" && c.name === data.name);
-    }
+    const { existing, matchedBy } = findExistingConnection(all, data);
 
     if (existing) {
       const merged = { ...existing, ...data, updatedAt: now };
@@ -110,7 +128,7 @@ export async function createProviderConnection(data) {
         provider: data.provider,
         authType: data.authType,
         id: existing.id,
-        matchedBy: data.authType === "oauth" && data.email ? "email" : "name",
+        matchedBy,
         email: data.email || existing.email || null,
         name: data.name || existing.name || null,
         isActive: merged.isActive,
