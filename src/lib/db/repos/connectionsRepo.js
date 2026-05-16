@@ -61,10 +61,27 @@ function getChatGptAccountId(connection) {
 }
 
 function findExistingConnection(all, data) {
-  if (data.authType === "oauth" && data.provider === "codex" && getChatGptAccountId(data)) {
+  if (data.authType === "oauth" && data.provider === "codex") {
     const accountId = getChatGptAccountId(data);
-    const existing = all.find((c) => c.authType === "oauth" && getChatGptAccountId(c) === accountId);
-    return { existing, matchedBy: existing ? "chatgptAccountId" : null };
+    if (accountId && data.email) {
+      const existing = all.find((c) =>
+        c.authType === "oauth" &&
+        c.email === data.email &&
+        getChatGptAccountId(c) === accountId
+      );
+      return { existing, matchedBy: existing ? "email+chatgptAccountId" : null };
+    }
+
+    if (data.email) {
+      const existing = all.find((c) =>
+        c.authType === "oauth" &&
+        c.email === data.email &&
+        !getChatGptAccountId(c)
+      );
+      return { existing, matchedBy: existing ? "email" : null };
+    }
+
+    return { existing: null, matchedBy: null };
   }
 
   if (data.authType === "oauth" && data.email) {

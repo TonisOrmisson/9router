@@ -101,7 +101,7 @@ describe("DB SQLite layer — public API parity", () => {
     expect(back.providerSpecificData).toEqual({ foo: "bar" });
   });
 
-  it("providerConnections: codex oauth dedupes by ChatGPT account id before email", async () => {
+  it("providerConnections: codex oauth keeps same-email accounts separate by ChatGPT account id", async () => {
     const personal = await sqliteDb.createProviderConnection({
       provider: "codex",
       authType: "oauth",
@@ -128,6 +128,33 @@ describe("DB SQLite layer — public API parity", () => {
     expect(sameEmail).toHaveLength(2);
     expect(sameEmail.find((c) => c.providerSpecificData?.chatgptAccountId === "personal-account")?.isActive).toBe(false);
     expect(sameEmail.find((c) => c.providerSpecificData?.chatgptAccountId === "business-account")?.isActive).toBe(true);
+  });
+
+  it("providerConnections: codex oauth keeps different emails separate for shared ChatGPT account id", async () => {
+    const first = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "first@example.com",
+      name: "first@example.com #team",
+      isActive: false,
+      providerSpecificData: { chatgptAccountId: "shared-business-account" },
+      accessToken: "first-token",
+    });
+
+    const second = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "second@example.com",
+      name: "second@example.com #team",
+      providerSpecificData: { chatgptAccountId: "shared-business-account" },
+      accessToken: "second-token",
+    });
+
+    expect(second.id).not.toBe(first.id);
+
+    const list = await sqliteDb.getProviderConnections({ provider: "codex" });
+    expect(list.find((c) => c.email === "first@example.com")?.name).toBe("first@example.com #team");
+    expect(list.find((c) => c.email === "second@example.com")?.name).toBe("second@example.com #team");
   });
 
   it("providerNodes: CRUD", async () => {
