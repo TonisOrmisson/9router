@@ -155,7 +155,7 @@ export async function createProviderConnection(data) {
     }
 
     let connectionName = data.name || null;
-    if (!connectionName && data.authType === "oauth") {
+    if (!connectionName && (data.authType === "oauth" || data.authType === "access_token")) {
       connectionName = data.email || `Account ${all.length + 1}`;
     }
     let connectionPriority = data.priority;
