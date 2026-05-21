@@ -157,6 +157,18 @@ function isPublicApi(pathname) {
   return PUBLIC_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+function isProtectedDashboardApi(pathname) {
+  return PROTECTED_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    || ALWAYS_PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function shouldApplyIpAllowlist(pathname) {
+  if (isProtectedDashboardApi(pathname) && !LOCAL_ONLY_PATHS.some((p) => pathname.startsWith(p))) {
+    return false;
+  }
+  return true;
+}
+
 export const __test__ = {
   isLocalRequest,
   isPublicLlmApi,
@@ -168,20 +180,22 @@ export const __test__ = {
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
-  try {
-    const ipCheck = evaluateIpAllowlist(request);
-    if (!ipCheck.allowed) {
-      if (pathname.startsWith("/api/") || pathname.startsWith("/v1") || pathname.startsWith("/v1beta")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (shouldApplyIpAllowlist(pathname)) {
+    try {
+      const ipCheck = evaluateIpAllowlist(request);
+      if (!ipCheck.allowed) {
+        if (pathname.startsWith("/api/") || pathname.startsWith("/v1") || pathname.startsWith("/v1beta")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+        return new NextResponse("Forbidden", { status: 403 });
       }
-      return new NextResponse("Forbidden", { status: 403 });
+    } catch (error) {
+      console.error("IP allowlist configuration error:", error);
+      if (pathname.startsWith("/api/") || pathname.startsWith("/v1") || pathname.startsWith("/v1beta")) {
+        return NextResponse.json({ error: "IP allowlist misconfigured" }, { status: 500 });
+      }
+      return new NextResponse("IP allowlist misconfigured", { status: 500 });
     }
-  } catch (error) {
-    console.error("IP allowlist configuration error:", error);
-    if (pathname.startsWith("/api/") || pathname.startsWith("/v1") || pathname.startsWith("/v1beta")) {
-      return NextResponse.json({ error: "IP allowlist misconfigured" }, { status: 500 });
-    }
-    return new NextResponse("IP allowlist misconfigured", { status: 500 });
   }
 
   // Local-only gate for spawn-capable / host-secret routes.
