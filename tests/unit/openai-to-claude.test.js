@@ -149,7 +149,14 @@ describe("openaiToClaudeResponse", () => {
       }]
     };
 
-    const result = openaiToClaudeResponse(chunk, state);
+    const result = [
+      ...openaiToClaudeResponse(chunk, state),
+      ...openaiToClaudeResponse({
+        id: "chatcmpl-test",
+        model: "gpt-test",
+        choices: [{ delta: {}, finish_reason: "tool_calls" }]
+      }, state)
+    ];
     const inputDelta = result.find(event => event.delta?.type === "input_json_delta");
 
     expect(inputDelta).toBeDefined();
