@@ -33,6 +33,23 @@ jobs:
           path: dist/9router-prebuilt-*.tar.gz
           if-no-files-found: error
 
+      - name: Publish branch prebuilt release asset
+        if: github.event_name == 'push' && github.ref == 'refs/heads/to/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          short_sha="$(git rev-parse --short HEAD)"
+          tag="prebuilt-${version}-${short_sha}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/9router-prebuilt-*.tar.gz --clobber
+          else
+            gh release create "$tag" dist/9router-prebuilt-*.tar.gz \
+              --target "$GITHUB_SHA" \
+              --title "$tag" \
+              --notes "Prebuilt standalone 9router archive."
+          fi
+
       - name: Publish tag release asset
         if: startsWith(github.ref, 'refs/tags/')
         env:
