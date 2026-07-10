@@ -61,18 +61,18 @@ function getChatGptAccountId(connection) {
 }
 
 function findExistingConnection(all, data) {
-  if (data.authType === "oauth" && data.provider === "codex") {
-    const accountId = getChatGptAccountId(data);
-    if (accountId && data.email) {
-      const existing = all.find((c) =>
-        c.authType === "oauth" &&
-        c.email === data.email &&
-        getChatGptAccountId(c) === accountId
-      );
-      return { existing, matchedBy: existing ? "email+chatgptAccountId" : null };
-    }
+  if (data.authType === "oauth" && data.email) {
+    if (data.provider === "codex") {
+      const accountId = getChatGptAccountId(data);
+      if (accountId) {
+        const existing = all.find((c) =>
+          c.authType === "oauth" &&
+          c.email === data.email &&
+          getChatGptAccountId(c) === accountId
+        );
+        return { existing, matchedBy: existing ? "email+chatgptAccountId" : null };
+      }
 
-    if (data.email) {
       const existing = all.find((c) =>
         c.authType === "oauth" &&
         c.email === data.email &&
@@ -81,12 +81,16 @@ function findExistingConnection(all, data) {
       return { existing, matchedBy: existing ? "email" : null };
     }
 
-    return { existing: null, matchedBy: null };
-  }
-
-  if (data.authType === "oauth" && data.email) {
-    const existing = all.find(c => c.authType === "oauth" && c.email === data.email);
-    return { existing, matchedBy: existing ? "email" : null };
+    const incomingUsername = data.providerSpecificData?.username;
+    const existing = all.find((connection) => {
+      if (connection.authType !== "oauth" || connection.email !== data.email) return false;
+      const existingUsername = connection.providerSpecificData?.username;
+      if (incomingUsername && existingUsername) return incomingUsername === existingUsername;
+      if (incomingUsername || existingUsername) return false;
+      return true;
+    });
+    const matchedBy = existing ? (incomingUsername ? "email+username" : "email") : null;
+    return { existing, matchedBy };
   }
 
   if (data.authType === "apikey" && data.name) {
