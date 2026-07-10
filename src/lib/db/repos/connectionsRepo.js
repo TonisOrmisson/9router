@@ -64,32 +64,30 @@ function findExistingConnection(all, data) {
   if (data.authType === "oauth" && data.email) {
     if (data.provider === "codex") {
       const accountId = getChatGptAccountId(data);
-      if (accountId) {
-        const existing = all.find((c) =>
-          c.authType === "oauth" &&
-          c.email === data.email &&
-          getChatGptAccountId(c) === accountId
-        );
-        return { existing, matchedBy: existing ? "email+chatgptAccountId" : null };
-      }
-
       const existing = all.find((c) =>
         c.authType === "oauth" &&
         c.email === data.email &&
-        !getChatGptAccountId(c)
+        !!accountId &&
+        getChatGptAccountId(c) === accountId
       );
-      return { existing, matchedBy: existing ? "email" : null };
+      return { existing, matchedBy: existing ? "email+chatgptAccountId" : null };
     }
 
     const incomingUsername = data.providerSpecificData?.username;
+    const incomingAccountId = getChatGptAccountId(data);
     const existing = all.find((connection) => {
       if (connection.authType !== "oauth" || connection.email !== data.email) return false;
+      const existingAccountId = getChatGptAccountId(connection);
+      if (incomingAccountId && existingAccountId) return incomingAccountId === existingAccountId;
+      if (incomingAccountId || existingAccountId) return false;
       const existingUsername = connection.providerSpecificData?.username;
       if (incomingUsername && existingUsername) return incomingUsername === existingUsername;
       if (incomingUsername || existingUsername) return false;
       return true;
     });
-    const matchedBy = existing ? (incomingUsername ? "email+username" : "email") : null;
+    const matchedBy = existing
+      ? (incomingAccountId ? "email+chatgptAccountId" : (incomingUsername ? "email+username" : "email"))
+      : null;
     return { existing, matchedBy };
   }
 
@@ -99,6 +97,17 @@ function findExistingConnection(all, data) {
   }
 
   return { existing: null, matchedBy: null };
+}
+
+function deriveConnectionName(data, fallbackName) {
+  if (data.provider === "github") {
+    return data.providerSpecificData?.githubLogin
+      || data.providerSpecificData?.githubEmail
+      || data.email
+      || data.providerSpecificData?.githubName
+      || fallbackName;
+  }
+  return fallbackName;
 }
 
 export async function getProviderConnections(filter = {}) {
@@ -160,7 +169,7 @@ export async function createProviderConnection(data) {
 
     let connectionName = data.name || null;
     if (!connectionName && (data.authType === "oauth" || data.authType === "access_token")) {
-      connectionName = data.email || `Account ${all.length + 1}`;
+      connectionName = deriveConnectionName(data, data.email || `Account ${all.length + 1}`);
     }
     let connectionPriority = data.priority;
     if (!connectionPriority) {

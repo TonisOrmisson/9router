@@ -1222,6 +1222,7 @@ docker pull decolua/9router:latest   # update to latest
 | `IP_ALLOWLIST_ENABLED`                               | `false`                                  | Enable global IP allowlist middleware for app routes and APIs                       |
 | `IP_ALLOWLIST`                                       | empty                                    | Comma- or newline-separated allowed client IPs or CIDR ranges                       |
 | `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` | empty                                    | Optional outbound proxy for upstream provider calls                                 |
+| `SEARXNG_URL`                                        | `http://localhost:8888/search`           | Endpoint for the built-in unauthenticated SearXNG web-search provider               |
 
 Notes:
 

@@ -157,6 +157,36 @@ describe("DB SQLite layer — public API parity", () => {
     expect(list.find((c) => c.email === "second@example.com")?.name).toBe("second@example.com #team");
   });
 
+  it("providerConnections: codex oauth does not deduplicate bare-email accounts", async () => {
+    const first = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "bare@example.com",
+      accessToken: "first-token",
+    });
+    const second = await sqliteDb.createProviderConnection({
+      provider: "codex",
+      authType: "oauth",
+      email: "bare@example.com",
+      accessToken: "second-token",
+    });
+
+    expect(second.id).not.toBe(first.id);
+  });
+
+  it("providerConnections: GitHub OAuth uses account identity as fallback name", async () => {
+    const c = await sqliteDb.createProviderConnection({
+      provider: "github",
+      authType: "oauth",
+      accessToken: "tok",
+      providerSpecificData: { githubLogin: "octocat" },
+    });
+
+    expect(c.name).toBe("octocat");
+    const back = await sqliteDb.getProviderConnectionById(c.id);
+    expect(back.name).toBe("octocat");
+  });
+
   it("providerNodes: CRUD", async () => {
     const n = await sqliteDb.createProviderNode({ type: "openai", name: "Test", baseUrl: "https://api.test", apiType: "openai" });
     expect(n.id).toBeDefined();
