@@ -1,17 +1,19 @@
 {
   "name": "9router-app",
-  "version": "0.5.40",
+  "version": "0.5.50",
   "description": "9Router web dashboard",
   "private": true,
   "scripts": {
     "dev": "next dev --port 20128",
     "dev:webpack": "next dev --webpack --port 20128",
     "build": "NODE_ENV=production next build --webpack",
+    "postbuild": "node scripts/copy-standalone-assets.mjs",
     "package:prebuilt": "bash scripts/create-prebuilt.sh",
     "start": "NODE_ENV=production node ./.next/standalone/server.js",
     "dev:bun": "bun --bun next dev --webpack --port 20128",
     "build:bun": "NODE_ENV=production bun --bun next build --webpack",
     "start:bun": "NODE_ENV=production bun ./.next/standalone/server.js",
+    "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
     "cli:pack": "npm --prefix cli run pack:cli",
     "cli:publish": "npm --prefix cli run publish:cli"
   },

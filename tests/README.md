@@ -4,23 +4,24 @@ Unit tests for the `/v1/embeddings` endpoint implementation.
 
 ## Setup
 
-Install the local test dependencies:
+Install test dependencies from the `tests/` directory:
 
 ```bash
-cd tests && npm install
+cd tests/ && npm install
 ```
 
 ## Running Tests
 
+From the `tests/` directory:
+
 ```bash
-cd tests/
 npm test
 ```
 
-Or using the package script (from the `tests/` directory):
+Or run vitest directly with npx:
 
 ```bash
-npm test
+npx vitest run --reporter=verbose --config ./vitest.config.js
 ```
 
 ## Test Files
